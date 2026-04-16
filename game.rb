@@ -20,6 +20,8 @@ class Display
   def display_board
     puts @screen
     puts
+    puts "guess a letter"
+    puts
   end
   def solve(line)
     line.each_with_index { |state, index|
@@ -72,6 +74,7 @@ class Game
     @progress = Progress.new("OFF", @round, @display)
     @round = (@progress.io == "ON" ? @progress.round : 0)
     @load = LoadProgress.new
+    @display.display_board
   end
 
   def guess(input)
@@ -167,7 +170,7 @@ class Game
     end
     if @round == 6
       puts "YOU LOSE"
-      puts "This was the word: #{@answer}"
+      puts "The word was: #{@answer}"
     end
   end
 end
@@ -184,6 +187,8 @@ class Main
     game == "load" ? true : false
   end
   def run
+    system("clear")
+    puts "(New/Load) game."
     input = gets.chomp.downcase
     if new?(input)
       game = Game.new(@dict, @count)
