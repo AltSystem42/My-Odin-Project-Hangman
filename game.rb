@@ -8,11 +8,10 @@ end
 f.close
 
 class Display
-  attr_accessor :guessed, :answer, :screen
+  attr_accessor :guessed, :screen
 
-  def initialize(word_length, answer)
+  def initialize(word_length)
     @screen = '_' * word_length
-    @answer = answer
     @guessed = ""
   end
   def display_board
@@ -21,9 +20,8 @@ class Display
     puts "guess a letter OR save/exit/load"
     puts
   end
-  def restore(screen, answer, guessed)
+  def restore(screen, guessed)
     @screen = screen
-    @answer = answer
     @guessed = guessed
   end
 end
@@ -46,11 +44,11 @@ class Progress
     @display = display
     @round = round
   end
-  def save
+  def save(answer)
     data = {
       round: @round,
       display: {
-        answer: @display.answer,
+        answer: answer,
         guessed: @display.guessed,
         screen: @display.screen
       }
@@ -64,8 +62,7 @@ end
 class Game
   def initialize(dict, desc)
     @answer = word(dict[rand(dict.length)], dict)
-    @display = Display.new(@answer.length, @answer)
-    @word_length = @answer.length
+    @display = Display.new(@answer.length)
     @round = 0
     @progress = Progress.new(@round, @display)
     @load = LoadProgress.new
@@ -74,7 +71,7 @@ class Game
 
   def guess(input)
     found = false
-    @display.answer.chars.each_with_index {|element, index| 
+    @answer.chars.each_with_index {|element, index| 
     if element == input
       @display.screen[index] = input
       found = true
@@ -99,7 +96,7 @@ class Game
   end
 
   def finished?
-   @display.screen == @display.answer
+   @display.screen == @answer
   end
 
   def load
@@ -110,7 +107,7 @@ class Game
           guessed = data["display"]["guessed"]
           screen = data["display"]["screen"]
           answer = data["display"]["answer"]
-          @display.restore(screen, answer, guessed)
+          @display.restore(screen, guessed)
           @answer = answer
           puts "letters you have guessed:#{@display.guessed}"
           puts "You have #{6 - @round} remaining guesses"
@@ -134,6 +131,7 @@ class Game
           puts "You have #{6 - @round} remaining guesses"
           @display.display_board
         else
+          puts "You have #{6 - @round} remaining guesses"
           @display.display_board
         end
       elsif input == "exit"
@@ -141,7 +139,7 @@ class Game
       elsif input == "save"
         @progress.round = @round
         @progress.display = @display
-        @progress.save
+        @progress.save(@answer)
       elsif input == "load"
         load
       else
