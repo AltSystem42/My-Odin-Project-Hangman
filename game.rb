@@ -2,10 +2,8 @@ require 'json'
 
 f = File.open('./dic.txt')
 dict = []
-count = -1
 while word = f.gets do
   dict << word.chomp
-  count += 1
 end
 f.close
 
@@ -20,39 +18,40 @@ class Display
   def display_board
     puts @screen
     puts
-    puts "guess a letter"
+    puts "guess a letter OR save/exit/load"
     puts
   end
-  def solve(line)
-    line.each_with_index { |state, index|
-      if state == true
-        @screen[index] = @answer[index]
-      end
-    }
-    display_board
+  def build(screen, answer, guessed)
+    @screen = screen
+    @answer = answer
+    @guessed = guessed
   end
 end
 
 class LoadProgress
   def load
     data = {}
-    File.open("./save.json", "r") do |file|
-      data = JSON.parse(file.read)
+    if File.exist?("./save.json")
+      File.open("./save.json", "r") do |file|
+        data = JSON.parse(file.read)
+      end
+    else
+      File.open("./save.json", "w") do |file|
+        file.puts JSON.generate({})
+      end
     end
     return data
   end
 end
 
 class Progress
-  attr_accessor :io, :round, :display
-  def initialize(io, round, display)
+  attr_accessor :round, :display
+  def initialize( round, display)
     @display = display
     @round = round
-    @io = io
   end
   def save
     data = {
-      io: @io,
       round: @round,
       display: {
         answer: @display.answer,
@@ -67,25 +66,25 @@ class Progress
 end
 
 class Game
-  def initialize(dict, count)
-    @answer = word(dict[rand(count)], dict, count)
+  def initialize(dict, desc)
+    @count = dict.length
+    @answer = word(dict[rand(@count)], dict, @count)
     @display = Display.new(@answer.length, @answer)
     @word_length = @answer.length
-    @progress = Progress.new("OFF", @round, @display)
-    @round = (@progress.io == "ON" ? @progress.round : 0)
+    @round = 0
+    @progress = Progress.new(@round, @display)
     @load = LoadProgress.new
-    @display.display_board
+    desc == "load" ?  false : @display.display_board
   end
 
   def guess(input)
-    checklist = []
-    @answer.each_char {|char|  
-    if char == input
-      checklist << true
-    else
-      checklist << false
+    found = false
+    @display.answer.chars.each_with_index {|element, index| 
+    if element == input
+      @display.screen[index] = input
+      found = true
     end}
-    return checklist
+    return found
   end
 
     def word(w, dict, count)
@@ -105,32 +104,21 @@ class Game
   end
 
   def finished?
-    int = 0
-      @answer.chars.each_with_index {|element, index| 
-        if element == @display.screen[index]
-          int += 1
-        end}
-    if int == @word_length
-      return true
-    else
-      return false
-    end
+   @display.screen == @display.answer
   end
 
   def load
     data = @load.load
-        if data["io"] == "ON"
-          @progress.io = "OFF"
+        if !data.empty?
           system("clear")
           @round = data["round"]
-          @display = Display.new(data["display"]["answer"].length, data["display"]["answer"])
-          @display.guessed = data["display"]["guessed"]
-          @display.screen = data["display"]["screen"]
-          @display.answer = data["display"]["answer"]
+          guessed = data["display"]["guessed"]
+          screen = data["display"]["screen"]
+          answer = data["display"]["answer"]
+          @display.build(screen, answer, guessed)
           @answer = data["display"]["answer"]
-          @progress.save
           puts "letters you have guessed:#{@display.guessed}"
-          puts "You have #{6 - @round} remaining guessess"
+          puts "You have #{6 - @round} remaining guesses"
           @display.display_board
           return true
         else
@@ -146,15 +134,16 @@ class Game
         @display.guessed << "#{input},"
         puts "letters you have guessed:#{@display.guessed}"
         line = guess(input)
-        if line.all?(false)
+        if !line
           @round += 1
           puts "You have #{6 - @round} remaining guesses"
+          @display.display_board
+        else
+          @display.display_board
         end
-        @display.solve(line)
       elsif input == "exit"
         break
       elsif input == "save"
-        @progress.io = "ON"
         @progress.round = @round
         @progress.display = @display
         @progress.save
@@ -176,9 +165,8 @@ class Game
 end
 
 class Main
-  def initialize(dict, count)
+  def initialize(dict)
     @dict = dict
-    @count = count
   end
   def new?(game)
     game == "new" ? true : false
@@ -191,18 +179,20 @@ class Main
     puts "(New/Load) game."
     input = gets.chomp.downcase
     if new?(input)
-      game = Game.new(@dict, @count)
+      game = Game.new(@dict, input)
       game.run
     elsif load?(input)
-      game = Game.new(@dict, @count)
+      game = Game.new(@dict, input)
       if game.load
         game.run
-      end
+      else
+        puts "no saved game"
+      end 
     end
   end
 end
 
-main = Main.new(dict, count)
+main = Main.new(dict)
 main.run
 
 
