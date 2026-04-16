@@ -136,7 +136,6 @@ class Game
   end
 
   def run
-    puts @answer
     while @round < 6
         input = gets.chomp.downcase
       if letter?(input) 
@@ -168,6 +167,7 @@ class Game
     end
     if @round == 6
       puts "YOU LOSE"
+      puts "This was the word: #{@answer}"
     end
   end
 end
