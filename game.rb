@@ -21,7 +21,7 @@ class Display
     puts "guess a letter OR save/exit/load"
     puts
   end
-  def build(screen, answer, guessed)
+  def restore(screen, answer, guessed)
     @screen = screen
     @answer = answer
     @guessed = guessed
@@ -34,10 +34,6 @@ class LoadProgress
     if File.exist?("./save.json")
       File.open("./save.json", "r") do |file|
         data = JSON.parse(file.read)
-      end
-    else
-      File.open("./save.json", "w") do |file|
-        file.puts JSON.generate({})
       end
     end
     return data
@@ -67,8 +63,7 @@ end
 
 class Game
   def initialize(dict, desc)
-    @count = dict.length
-    @answer = word(dict[rand(@count)], dict, @count)
+    @answer = word(dict[rand(dict.length)], dict)
     @display = Display.new(@answer.length, @answer)
     @word_length = @answer.length
     @round = 0
@@ -87,11 +82,11 @@ class Game
     return found
   end
 
-    def word(w, dict, count)
+    def word(w, dict)
       if w.length.between?(5,12)
         w
       else
-        word(dict[rand(count)], dict, count)
+        word(dict[rand(dict.length)], dict)
       end
     end
 
@@ -115,8 +110,8 @@ class Game
           guessed = data["display"]["guessed"]
           screen = data["display"]["screen"]
           answer = data["display"]["answer"]
-          @display.build(screen, answer, guessed)
-          @answer = data["display"]["answer"]
+          @display.restore(screen, answer, guessed)
+          @answer = answer
           puts "letters you have guessed:#{@display.guessed}"
           puts "You have #{6 - @round} remaining guesses"
           @display.display_board
@@ -134,7 +129,7 @@ class Game
         @display.guessed << "#{input},"
         puts "letters you have guessed:#{@display.guessed}"
         line = guess(input)
-        if !line
+        unless line
           @round += 1
           puts "You have #{6 - @round} remaining guesses"
           @display.display_board
